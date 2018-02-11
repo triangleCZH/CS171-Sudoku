@@ -78,7 +78,14 @@ void Domain::add ( int value )
 		values.push_back( value );
 }
 
+//FIXME: this depends. if forward checking can check those passively assigned, then
+//use variable remove, because it will trigger modified for value
+//if FC doesn't then use domain remove, so it will not set variable.modified = true
+//and next time when we collect modified variables, this will not be collected
 // Remove a value from the domain
+// this should not be directly called, because
+// void Variable::removeValueFromDomain ( int val )
+// will call this
 bool Domain::remove ( int value )
 {
 	int v = value;

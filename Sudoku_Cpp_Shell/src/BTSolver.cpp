@@ -42,35 +42,46 @@ bool BTSolver::assignmentsCheck ( void )
  * Note: remember to trail.push variables before you assign them
  * Return: true is assignment is consistent, false otherwise
  */
+
+/*no matter I call variable remove or domain remove, no matter the domain decreased
+variable is considered as modified or not, once it has only one value, it is considered
+as assgigned, then if a row is [1,2] [1,2] [assign = 1], they both get 2 and think
+themselves assigned*/
 bool BTSolver::forwardChecking ( void )
 {   //TODO: maybe don;t use getConstraint, but go get modified variables and get their neighbors
 	//check the current top of the stack, get the variable and its new value
-	ConstraintNetwork::VarConPair mConPair = network.getModifiedConstraints();
-	std::set< Variable* > refval = mConPair.first;
-	std::vector< Constraint* > refcon = mConPair.second;
-	for ( Constraint& c : refcon ) 
+	ConstraintNetwork::VariableSet mVariables = network.getModifiedVariables();
+	for ( Variable* var: mVariables ) 
 	{
-		for ( Variable* var: c.VariableSet ) 
-		{
-		    if ( refval.count(var) > 0 ) //meaning this is recently modified
-		    {
-		    	for ( Variable* var2: c.VariableSet ) 
-		    	{
-		    		if (var2 != var) //then this is one of the eight other values of the constrain
-		    		{
-
-		    		}
-		    	}
-		    }
-		}		
+		Domain varDomain = var->getDomain();
+		// Uncertain where this error will be, but whenever empty domains found, it's errorness
+		if ( varDomain.size() == 0 ) return false;
+		// For forwardChecking, I don't care about those modified through forward checking, but only those just assigned
+		if ( varDomain.size() != 1 ) continue;
+		// this returns int
+		int varAssignment = var->getAssignment();
+		// iterate on each neighbor of this variable
+	    ConstraintNetwork::VariableSet neighbors = network.getNeighborsOfVariable( var );
+	    for ( Variable* neigh: neighbors)
+	    {
+	    	Domain neighDomain = neigh->getDomain();
+	    	// if doesn't contain, then not affected
+	    	if ( neighDomain.contains( varAssignment )) 
+	    	{
+	    		// if it contains this in domain, and even assigned with varAssignment, then inconsistent
+	    		if ( neigh->isAssigned() ) return false;
+	    		//first back up this neighbor's domain in trail stack
+	    		trail->push( neigh );
+	    		neigh->removeValueFromDomain( varAssignment );
+	    	}
+	    }
+	    // now we check if inconsistency happens after domain update
+	    ConstraintNetwork::ConstraintRefSet varRelatedConstraints = network.getConstraintsContainingVariable( var );
+	    for ( Constraint* c : varRelatedConstraints ) 
+	    	if ( !c->isConsistent() ) 
+	    		return false;
 	}
-	//for each constrain
-	//if it has value in its domain
-	//if unchangeable return false
-	//push neighbor, domain to stack
-	//remove this value from domain
-	//return true
-	return false;
+	return true;
 }
 
 /**

@@ -184,6 +184,22 @@ ConstraintNetwork::ConstraintRefSet ConstraintNetwork::getConstraintsContainingV
 	return outList;
 }
 
+ConstraintNetwork::VariableSet ConstraintNetwork::getModifiedVariables ( void )
+{
+	ConstraintNetwork::VariableSet mVariables;
+	for ( Variable* v : variables ) 
+	{
+		if ( v->isModified() ) 
+		{
+			mVariables.push_back( v );
+			v->setModified( false );
+		}
+		
+	}
+
+	return mVariables;	
+}
+
 /**
  * Returns the constraints that contain variables whose domains were
  * modified since the last call to this method.
