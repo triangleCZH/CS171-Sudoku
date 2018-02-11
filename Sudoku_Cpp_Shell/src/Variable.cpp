@@ -128,6 +128,7 @@ void Variable::assignValue ( int val )
 	if ( ! changeable )
 		return;
 
+    // will update domain to have only one value
 	setDomain( Domain( val ) );
 }
 

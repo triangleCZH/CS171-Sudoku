@@ -69,6 +69,7 @@ int main ( int argc, char *argv[] )
 		cout << board.toString() << endl;
 
 		BTSolver solver = BTSolver( board, &trail, val_sh, var_sh, cc );
+	    //cout <<solver.getNetwork().getModifiedConstraints().size() << " is the initial size";
 		solver.solve();
 
 		if ( solver.haveSolution() )

@@ -194,20 +194,39 @@ ConstraintNetwork::ConstraintRefSet ConstraintNetwork::getConstraintsContainingV
  * Note* The first call to this method returns the constraints containing
  * the initialized variables.
  */
-ConstraintNetwork::ConstraintRefSet ConstraintNetwork::getModifiedConstraints ( void )
+ConstraintNetwork::VarConPair ConstraintNetwork::getModifiedConstraints ( void )
 {
-	ConstraintNetwork::ConstraintRefSet mConstraints;
 
+	ConstraintNetwork::VarConPair mVarCon;
+	ConstraintNetwork::ConstraintRefSet mConstraints;
+	ConstraintNetwork::VariableMap mVariables;
 	for ( Constraint& c : constraints )
-		if ( c.isModified() )
+	{
+		bool contain = false;
+		for ( Variable& var: c.VariableSet ) {
+		    if ( var.isModified() ) 
+		    {
+		    	//because this is a set, a failure will return false and do not modify
+			    mVariables.insert( &var );
+			    contain = true;
+		    }
+		}
+		if ( contain )
 			mConstraints.push_back( &c );
+	}
+	mVarCon.first = mVariables;
+	mVarCon.second = mConstraints
 
 	for ( Variable* v : variables )
 		v->setModified( false );
-
-	return mConstraints;
+	return mVarCon;
 }
 
+//FIXME: this is probably not a good idea
+/*void ConstraintNetwork::setModifiedFalse( void ):
+    for ( Variable* v : variables )
+		v->setModified( false );
+	return*/
 // =====================================================================
 // String Representation
 // =====================================================================
