@@ -1,4 +1,5 @@
 #include"BTSolver.hpp"
+#include <climits>
 
 using namespace std;
 
@@ -51,7 +52,7 @@ bool BTSolver::forwardChecking ( void )
 {   //TODO: maybe don;t use getConstraint, but go get modified variables and get their neighbors
 	//check the current top of the stack, get the variable and its new value
 	ConstraintNetwork::VariableSet mVariables = network.getModifiedVariables();
-	for ( Variable* var: mVariables ) 
+	for ( Variable* var: mVariables )
 	{
 		Domain varDomain = var->getDomain();
 		// Uncertain where this error will be, but whenever empty domains found, it's errorness
@@ -68,7 +69,7 @@ bool BTSolver::forwardChecking ( void )
 	    {
 	    	Domain neighDomain = neigh->getDomain();
 	    	// if doesn't contain, then not affected
-	    	if ( neighDomain.contains( varAssignment )) 
+	    	if ( neighDomain.contains( varAssignment ))
 	    	{
 	    		// if it contains this in domain, and even assigned with varAssignment, then inconsistent
 	    		if ( neigh->isAssigned() ) return false;
@@ -79,8 +80,8 @@ bool BTSolver::forwardChecking ( void )
 	    }
 	    // now we check if inconsistency happens after domain update
 	    ConstraintNetwork::ConstraintRefSet varRelatedConstraints = network.getConstraintsContainingVariable( var );
-	    for ( Constraint* c : varRelatedConstraints ) 
-	    	if ( !c->isConsistent() ) 
+	    for ( Constraint* c : varRelatedConstraints )
+	    	if ( !c->isConsistent() )
 	    		return false;
 	}
 	return true;
@@ -152,14 +153,21 @@ Variable* BTSolver::getMRV ( void )
 		if ( !v->isAssigned() )
 			unassigned.push_back( v );
 
-    //check if all values are assigned? or maybe some unpredictable errors occur
-    if ( unassigned.size() == 0)
-	    return nullptr;
+  //check if all values are assigned? or maybe some unpredictable errors occur
+  if ( unassigned.size() == 0)
+	   return nullptr;
+/*
+	Variable* minVar = unassigned[0];
+	for ( Variable *v : unassigned ) {
+		if ( v->size() < minVar->size() ) {
+			minVar = v;
+		}
+	}
 
-	
-
-    std::sort(unassigned.begin(), unassigned.end(), comparePtrToVariable);
-    return unassigned[0];
+  return minVar;
+*/
+	std::sort(unassigned.begin(), unassigned.end(), comparePtrToVariable);
+	return unassigned[0];
 }
 
 /**
@@ -171,7 +179,40 @@ Variable* BTSolver::getMRV ( void )
  */
 Variable* BTSolver::getDegree ( void )
 {
-	return nullptr;
+	// Find unassigned variables
+	ConstraintNetwork::VariableSet variables = network.getVariables();
+
+	ConstraintNetwork::VariableSet unassigned;
+	for ( Variable *v : variables)
+		if ( !v->isAssigned() )
+			unassigned.push_back( v );
+
+	// If all values have been assigned, return nullptr
+	if ( unassigned.size() == 0 )
+		return nullptr;
+
+	// return unassigned[0];
+	// For each variable, count the number of their unassigned neighbors
+	int maxDeg = -1;
+	Variable *maxDegVar = nullptr;
+	for ( Variable *v : unassigned ) {
+		ConstraintNetwork::VariableSet neighbors = network.getNeighborsOfVariable( v );
+
+		int neighborCount = 0;
+		for ( Variable *vv: neighbors )
+			if ( !vv->isAssigned() )
+				neighborCount++;
+		/*
+		ConstraintNetwork::ConstraintRefSet outset = network.getConstraintsContainingVariable( v );
+		int neighborCount = outset.size();
+		*/
+		if ( neighborCount > maxDeg ) {
+			maxDeg = neighborCount;
+			maxDegVar = v;
+		}
+	}
+	//if (maxDegVar == nullptr) cout << "Error!\n";
+	return maxDegVar;
 }
 
 /**
@@ -183,7 +224,59 @@ Variable* BTSolver::getDegree ( void )
  */
 Variable* BTSolver::MRVwithTieBreaker ( void )
 {
-	return nullptr;
+	//get all the variables
+	ConstraintNetwork::VariableSet variables = network.getVariables();
+
+	//get all the unassigned variables
+	ConstraintNetwork::VariableSet unassigned;
+	for ( Variable* v : variables)
+		if ( !v->isAssigned() )
+			unassigned.push_back( v );
+
+  //check if all values are assigned? or maybe some unpredictable errors occur
+  if ( unassigned.size() == 0)
+	   return nullptr;
+/*
+  std::sort(unassigned.begin(), unassigned.end(), comparePtrToVariable);
+	Variable* minVar = unassigned[0];
+	for ( int i = unassigned.size() - 1; i >= 0; i-- ) {
+		if (unassigned[i]->size() > minVar->size())
+			unassigned.pop_back();
+		else break;
+	}
+*/
+	if (unassigned.size() == 1)
+		return unassigned[0];
+
+	// Find minVar
+	Variable *minVar = unassigned[0];
+	int minCount = 0;
+	for ( Variable *v: unassigned )
+		if ( v->size() < minVar->size() ) {
+			minVar = v;
+			minCount++;
+		}
+	if (minCount < 2) return minVar;
+
+	// For each min variable, count the number of their unassigned neighbors
+	int maxDeg = -1;
+	Variable *maxDegVar = minVar;
+	for ( Variable *v : unassigned ) {
+		if ( v->size() == minVar->size() ) {
+			int neighborCount = 0;
+			ConstraintNetwork::VariableSet neighbors = network.getNeighborsOfVariable( v );
+
+			for ( Variable *vv: neighbors ) {
+				if ( !vv->isAssigned() )
+					neighborCount++;
+			}
+			if ( neighborCount > maxDeg ) {
+				maxDeg = neighborCount;
+				maxDegVar = v;
+			}
+		}
+	}
+	return maxDegVar;
 }
 
 /**
@@ -223,10 +316,10 @@ vector<int> BTSolver::getValuesInOrder ( Variable* v )
 vector<int> BTSolver::getValuesLCVOrder ( Variable* v )
 {
 	//<value, how many unassigned neighbors have this value>
-	map<int, int> countMap; 
+	map<int, int> countMap;
 	Domain::ValueSet valueSet = v->getDomain().getValues();
 
-	//initialize the counter 
+	//initialize the counter
 	for ( int value : valueSet )
 		countMap.insert(std::pair<int, int>(value, 0));
 
@@ -234,11 +327,11 @@ vector<int> BTSolver::getValuesLCVOrder ( Variable* v )
 	ConstraintNetwork::VariableSet neighbors = network.getNeighborsOfVariable( v );
 
 	//for each neighbour, count occurence of the values v has, the more counts, the more constrained
-	for ( Variable* neigh : neighbors ) 
+	for ( Variable* neigh : neighbors )
 	{
 		Domain::ValueSet neighValues = neigh->getValues();
-		for ( int domainVal : neighValues ) 
-			if ( countMap.count(domainVal) > 0 ) 
+		for ( int domainVal : neighValues )
+			if ( countMap.count(domainVal) > 0 )
 				countMap[domainVal] += 1;
 	}
 
@@ -253,7 +346,7 @@ vector<int> BTSolver::getValuesLCVOrder ( Variable* v )
     	tmp.second = it->first;
     	reverseMap.push_back(tmp);
     }
-    
+
     //sort
 	std::sort(reverseMap.begin(), reverseMap.end());
 
