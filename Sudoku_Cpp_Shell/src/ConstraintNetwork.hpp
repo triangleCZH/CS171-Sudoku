@@ -42,6 +42,7 @@ public:
 
 	ConstraintRefSet getConstraintsContainingVariable ( Variable* v );
 	ConstraintRefSet getModifiedConstraints ( void );
+	VariableSet getModifiedVariables ( void )
 
 	SudokuBoard toSudokuBoard ( int _p, int _q ) const;
 	std::string toString ( void ) const;
