@@ -137,9 +137,29 @@ Variable* BTSolver::getfirstUnassignedVariable ( void )
  *
  * Return: The unassigned variable with the smallest domain
  */
+
+//self writen compare function
+bool comparePtrToVariable(Variable* a, Variable* b) { return (a->size() < b->size()); }
+
 Variable* BTSolver::getMRV ( void )
 {
-	return nullptr;
+	//get all the variables
+	ConstraintNetwork::VariableSet variables = network.getVariables();
+
+	//get all the unassigned variables
+	ConstraintNetwork::VariableSet unassigned;
+	for ( Variable* v : variables)
+		if ( !v->isAssigned() )
+			unassigned.push_back( v );
+
+    //check if all values are assigned? or maybe some unpredictable errors occur
+    if ( unassigned.size() == 0)
+	    return nullptr;
+
+	
+
+    std::sort(unassigned.begin(), unassigned.end(), comparePtrToVariable);
+    return unassigned[0];
 }
 
 /**
@@ -223,6 +243,8 @@ vector<int> BTSolver::getValuesLCVOrder ( Variable* v )
 	}
 
 	//sort the map
+
+	//reverse key-value in a vector, so as to sort by map's value, which is vector's key
     vector<std::pair<int, int>> reverseMap;
     for (std::map<int,int>::iterator it=countMap.begin(); it!=countMap.end(); ++it)
     {
@@ -232,39 +254,20 @@ vector<int> BTSolver::getValuesLCVOrder ( Variable* v )
     	reverseMap.push_back(tmp);
     }
     
-    /*for ( std::pair<int, int> element : countMap )
-    	reverseMap.push_back(std::pair<element.second, element.first>);*/
-
-	// Defining a lambda function to compare two pairs. It will compare two pairs using second field
-	/*auto cmp = 
-			[](std::pair<int, int> elem1 ,std::pair<int, int> elem2)
-			{
-				return elem1.first < elem2.first;
-			};*/
-
-	// Declaring a set that will store the pairs using above comparision logic
+    //sort
 	std::sort(reverseMap.begin(), reverseMap.end());
 
     // prepare returning vector
     vector<int> rtn;
 
-	// Iterate over a set using range base for loop
-	// It will display the items in sorted order of values
+	// Iterate over the vector of pairs using range base for loop
 	for (std::pair<int, int> element : reverseMap )
 		rtn.push_back(element.second);
 
 	return rtn;
 }
 
-/**
- * Part 1 TODO: Implement the Least Constraining Value Heuristic
- *
- * The Least constraining value is the one that will knock the most
- * values out of it's neighbors domain.
- *
- * Return: A list of v's domain sorted by the LCV heuristic
- *         The LCV is first and the MCV is last
- */
+
 vector<int> BTSolver::getTournVal ( Variable* v )
 {
 	return vector<int>();
