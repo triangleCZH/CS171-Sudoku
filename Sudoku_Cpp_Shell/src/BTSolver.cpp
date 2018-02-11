@@ -58,8 +58,10 @@ bool BTSolver::forwardChecking ( void )
 		if ( varDomain.size() == 0 ) return false;
 		// For forwardChecking, I don't care about those modified through forward checking, but only those just assigned
 		if ( varDomain.size() != 1 ) continue;
+
 		// this returns int
 		int varAssignment = var->getAssignment();
+
 		// iterate on each neighbor of this variable
 	    ConstraintNetwork::VariableSet neighbors = network.getNeighborsOfVariable( var );
 	    for ( Variable* neigh: neighbors)
@@ -196,9 +198,62 @@ vector<int> BTSolver::getValuesInOrder ( Variable* v )
  * Return: A list of v's domain sorted by the LCV heuristic
  *         The LCV is first and the MCV is last
  */
+// Since we will do consistencyCheck and remove values from domain,
+// this new assignment should be consistent
 vector<int> BTSolver::getValuesLCVOrder ( Variable* v )
 {
-	return vector<int>();
+	//<value, how many unassigned neighbors have this value>
+	map<int, int> countMap; 
+	Domain::ValueSet valueSet = v->getDomain().getValues();
+
+	//initialize the counter 
+	for ( int value : valueSet )
+		countMap.insert(std::pair<int, int>(value, 0));
+
+    //get all the neighbours
+	ConstraintNetwork::VariableSet neighbors = network.getNeighborsOfVariable( v );
+
+	//for each neighbour, count occurence of the values v has, the more counts, the more constrained
+	for ( Variable* neigh : neighbors ) 
+	{
+		Domain::ValueSet neighValues = neigh->getValues();
+		for ( int domainVal : neighValues ) 
+			if ( countMap.count(domainVal) > 0 ) 
+				countMap[domainVal] += 1;
+	}
+
+	//sort the map
+    vector<std::pair<int, int>> reverseMap;
+    for (std::map<int,int>::iterator it=countMap.begin(); it!=countMap.end(); ++it)
+    {
+    	std::pair<int, int> tmp;
+    	tmp.first = it->second;
+    	tmp.second = it->first;
+    	reverseMap.push_back(tmp);
+    }
+    
+    /*for ( std::pair<int, int> element : countMap )
+    	reverseMap.push_back(std::pair<element.second, element.first>);*/
+
+	// Defining a lambda function to compare two pairs. It will compare two pairs using second field
+	/*auto cmp = 
+			[](std::pair<int, int> elem1 ,std::pair<int, int> elem2)
+			{
+				return elem1.first < elem2.first;
+			};*/
+
+	// Declaring a set that will store the pairs using above comparision logic
+	std::sort(reverseMap.begin(), reverseMap.end());
+
+    // prepare returning vector
+    vector<int> rtn;
+
+	// Iterate over a set using range base for loop
+	// It will display the items in sorted order of values
+	for (std::pair<int, int> element : reverseMap )
+		rtn.push_back(element.second);
+
+	return rtn;
 }
 
 /**
