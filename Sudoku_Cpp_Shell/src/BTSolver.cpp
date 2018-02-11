@@ -149,7 +149,7 @@ Variable* BTSolver::getMRV ( void )
 	//get all the unassigned variables
 	ConstraintNetwork::VariableSet unassigned;
 	for ( Variable* v : variables)
-		if ( !v->isAssigned() )
+		if ( !(v->isAssigned()) )
 			unassigned.push_back( v );
 
     //check if all values are assigned? or maybe some unpredictable errors occur
@@ -171,7 +171,48 @@ Variable* BTSolver::getMRV ( void )
  */
 Variable* BTSolver::getDegree ( void )
 {
-	return nullptr;
+	map<Variable*, int> countMap; 
+	
+	ConstraintNetwork::VariableSet variables = network.getVariables();
+    for ( Variable* var : variables)
+    {
+    	//we only take unassigned vars
+    	if ( !(var->isAssigned()) ) 
+    	{
+    		    	//initialize var count = 0
+    	countMap.insert(std::pair<Variable*, int>(var, 0));
+
+    	//get all the neighbours
+	    ConstraintNetwork::VariableSet neighbors = network.getNeighborsOfVariable( var );
+
+		//for each neighbour, count occurence of the values v has, the more counts, the more constrained
+		for ( Variable* neigh : neighbors ) 
+		    if ( !(neigh->isAssigned()) )    
+		    	countMap[var] += 1;
+    	}
+
+
+    }  
+
+    // it means all assigned, or maybe some errors
+    if ( countMap.size() == 0)
+    	return nullptr;
+	//sort the map
+
+	//reverse key-value in a vector, so as to sort by map's value, which is vector's key
+    vector<std::pair<int, Variable*>> reverseMap;
+    for (std::map<Variable*, int>::iterator it=countMap.begin(); it!=countMap.end(); ++it)
+    {
+    	std::pair<int, Variable*> tmp;
+    	tmp.first = it->second;
+    	tmp.second = it->first;
+    	reverseMap.push_back(tmp);
+    }
+    
+    //sort
+	std::sort(reverseMap.begin(), reverseMap.end());
+
+	return reverseMap.back().second;
 }
 
 /**
@@ -279,13 +320,14 @@ vector<int> BTSolver::getTournVal ( Variable* v )
 
 void BTSolver::solve ( void )
 {
+	//cout << "                                     #1" << endl;
 	if ( hasSolution )
 		return;
 
 	// Variable Selection
 	Variable* v = selectNextVariable();
-
-	if ( v == nullptr )
+    
+    if ( v == nullptr )
 	{
 		for ( Variable* var : network.getVariables() )
 		{
@@ -301,20 +343,33 @@ void BTSolver::solve ( void )
 		hasSolution = true;
 		return;
 	}
+	//cout << v->getName() << " r: " << v->row() << " c: " << v->col() << " b: " << v->block() << endl;
+	
 
+//cout << "                                     #2" << endl;
 	// Attempt to assign a value
 	for ( int i : getNextValues( v ) )
 	{
+		//cout << "try value " << i << " :";
 		// Store place in trail and push variable's state on trail
 		trail->placeTrailMarker();
 		trail->push( v );
 
 		// Assign the value
 		v->assignValue( i );
-
 		// Propagate constraints, check consistency, recurse
-		if ( checkConsistency() )
+		if ( checkConsistency() ) {
+			/*int count = 0;
+			for ( Variable* var : network.getVariables() )
+			{
+				count += 1;
+					cout << var->getAssignment();
+					if ( count % 4 == 0)
+						cout << endl;
+			}
+			cout << endl;*/
 			solve();
+		}
 
 		// If this assignment succeeded, return
 		if ( hasSolution )
@@ -323,6 +378,7 @@ void BTSolver::solve ( void )
 		// Otherwise backtrack
 		trail->undo();
 	}
+	//cout << "                                     #3" << endl;
 }
 
 bool BTSolver::checkConsistency ( void )
