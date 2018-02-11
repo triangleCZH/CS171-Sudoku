@@ -43,7 +43,33 @@ bool BTSolver::assignmentsCheck ( void )
  * Return: true is assignment is consistent, false otherwise
  */
 bool BTSolver::forwardChecking ( void )
-{
+{   //TODO: maybe don;t use getConstraint, but go get modified variables and get their neighbors
+	//check the current top of the stack, get the variable and its new value
+	ConstraintNetwork::VarConPair mConPair = network.getModifiedConstraints();
+	std::set< Variable* > refval = mConPair.first;
+	std::vector< Constraint* > refcon = mConPair.second;
+	for ( Constraint& c : refcon ) 
+	{
+		for ( Variable* var: c.VariableSet ) 
+		{
+		    if ( refval.count(var) > 0 ) //meaning this is recently modified
+		    {
+		    	for ( Variable* var2: c.VariableSet ) 
+		    	{
+		    		if (var2 != var) //then this is one of the eight other values of the constrain
+		    		{
+
+		    		}
+		    	}
+		    }
+		}		
+	}
+	//for each constrain
+	//if it has value in its domain
+	//if unchangeable return false
+	//push neighbor, domain to stack
+	//remove this value from domain
+	//return true
 	return false;
 }
 
