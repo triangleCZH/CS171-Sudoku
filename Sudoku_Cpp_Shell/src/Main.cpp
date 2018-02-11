@@ -69,6 +69,7 @@ int main ( int argc, char *argv[] )
 		cout << board.toString() << endl;
 
 		BTSolver solver = BTSolver( board, &trail, val_sh, var_sh, cc );
+
 		solver.solve();
 
 		if ( solver.haveSolution() )
@@ -114,6 +115,7 @@ int main ( int argc, char *argv[] )
 			SudokuBoard board( individualFile );
 
 			BTSolver solver = BTSolver( board, &trail, val_sh, var_sh, cc );
+
 			solver.solve();
 
 			if ( solver.haveSolution() )
@@ -134,6 +136,60 @@ int main ( int argc, char *argv[] )
 	cout << board.toString() << endl;
 
 	BTSolver solver = BTSolver( board, &trail, val_sh, var_sh, cc );
+	/*==================================
+			map<Variable*, int> countMap; 
+			cout << "test1" << endl;
+			
+			ConstraintNetwork::VariableSet variables = solver.getNetwork().getVariables();
+			cout << "test2" << endl;
+		    for ( Variable* var : variables)
+		    {
+		    	//we only take unassigned vars
+		    	if ( var->isAssigned() )
+		    		continue;
+
+		    	//initialize var count = 0
+		    	countMap.insert(std::pair<Variable*, int>(var, 0));
+
+		    	//get all the neighbours
+			    ConstraintNetwork::VariableSet neighbors = solver.getNetwork().getNeighborsOfVariable( var );
+
+				//for each neighbour, count occurence of the values v has, the more counts, the more constrained
+				for ( Variable* neigh : neighbors ) 
+				    if ( !neigh->isAssigned() )    
+				    	countMap[var] += 1;
+		    }  
+		    cout << "test3" << endl;
+
+		    // it means all assigned, or maybe some errors
+		    if ( countMap.size() == 0)
+		    	printf("Finished!!\n");
+			//sort the map
+
+			cout << "test4" << endl;
+			//reverse key-value in a vector, so as to sort by map's value, which is vector's key
+		    vector<std::pair<int, Variable*>> reverseMap;
+		    for (std::map<Variable*, int>::iterator it=countMap.begin(); it!=countMap.end(); ++it)
+		    {
+		    	std::pair<int, Variable*> tmp;
+		    	tmp.first = it->second;
+		    	tmp.second = it->first;
+		    	reverseMap.push_back(tmp);
+		    }
+		    
+		    cout << "test5" << endl;
+		    //sort
+			std::sort(reverseMap.begin(), reverseMap.end());
+
+			cout << "test6" << endl;
+			Variable* front = reverseMap.front().second;
+
+			Variable* back = reverseMap.back().second;
+			printf("%d %d", front->size(), back->size());
+			printf( "%s: %d %s:%d is the current sort.\n", 
+				(std::string) front->getName(), reverseMap.front().first, 
+				(std::string) back->getName(), reverseMap.back().first );
+		*///==================================
 	solver.solve();
 
 	if ( solver.haveSolution() )
