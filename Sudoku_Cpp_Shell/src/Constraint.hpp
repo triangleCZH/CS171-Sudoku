@@ -8,6 +8,11 @@
 #include <sstream>
 #include <algorithm>
 
+/**
+ * Constraint represents a NotEquals constraint on a set of variables.
+ * Used to ensure none of the variables contained in the constraint have the same assignment.
+ */
+
 class Constraint
 {
 public:
@@ -28,26 +33,11 @@ public:
 	int  size         ( void );
 	bool contains     ( Variable* v );
 	bool isModified   ( void );
-	int  getConflicts ( void );
-
-	// Modifiers
-	/**
-	 * Attempts to propagate the notequal constraint through the variables in
-	 * the constraint. If it fails to do so, the propagation stops midway
-	 * and does not reset the changes to the domains of the variables made
-	 * so far.
-	 * @return true if the constraint is consistent and propagation succeeds,
-	 * false otherwise
-	 */
-	bool propagateConstraint ( void );
-
-	/**
-	 * @return true if constraint is consistent, false otherwise.
-	 */
 	bool isConsistent ( void );
 
 	bool operator== ( const Constraint &other ) const;
 
+	// String representation
 	std::string toString ( void );
 };
 

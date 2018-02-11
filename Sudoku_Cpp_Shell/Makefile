@@ -16,13 +16,13 @@
 # ======================================================================
 
 RAW_SOURCES = \
-	Assignment.cpp\
 	BTSolver.cpp\
 	Constraint.cpp\
 	ConstraintNetwork.cpp\
 	Domain.cpp\
 	Main.cpp\
 	SudokuBoard.cpp\
+	Trail.cpp\
 	Variable.cpp
 
 SOURCE_DIR = src
