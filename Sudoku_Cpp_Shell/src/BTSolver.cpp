@@ -51,7 +51,15 @@ themselves assigned*/
 bool BTSolver::forwardChecking ( void )
 {   //TODO: maybe don;t use getConstraint, but go get modified variables and get their neighbors
 	//check the current top of the stack, get the variable and its new value
-	ConstraintNetwork::VariableSet mVariables = network.getModifiedVariables();
+	ConstraintNetwork::VariableSet variables = network.getVariables();
+	ConstraintNetwork::VariableSet mVariables;
+	for ( Variable* var: variables ) {
+		if ( var->isModified() ) {
+			mVariables.push_back( var );
+			var->setModified( false );
+		}
+	}
+
 	for ( Variable* var: mVariables )
 	{
 		Domain varDomain = var->getDomain();
@@ -79,10 +87,12 @@ bool BTSolver::forwardChecking ( void )
 	    	}
 	    }
 	    // now we check if inconsistency happens after domain update
-	    ConstraintNetwork::ConstraintRefSet varRelatedConstraints = network.getConstraintsContainingVariable( var );
-	    for ( Constraint* c : varRelatedConstraints )
-	    	if ( !c->isConsistent() )
-	    		return false;
+
+	    // ConstraintNetwork::ConstraintRefSet varRelatedConstraints = network.getConstraintsContainingVariable( var );
+	    // for ( Constraint* c : varRelatedConstraints )
+	    // 	if ( !c->isConsistent() )
+	    // 		return false;
+			if ( !network.isConsistent() ) return false;
 	}
 	return true;
 }
@@ -100,11 +110,80 @@ bool BTSolver::forwardChecking ( void )
  *     then put the value there.
  *
  * Note: remember to trail.push variables before you assign them
- * Return: true is assignment is consistent, false otherwise
+ * Return: true if assignment is consistent, false otherwise
  */
+
 bool BTSolver::norvigCheck ( void )
 {
-	return false;
+	// (1) If a variable is assigned then eliminate that value from
+	// the variable's neighbours: Forward Checking
+	// ConstraintNetwork::VariableSet variables = network.getVariables();
+	ConstraintNetwork::VariableSet variables = network.getVariables();
+	ConstraintNetwork::VariableSet mVariables;
+	for ( Variable* var: variables ) {
+		if ( var->isModified() ) {
+			mVariables.push_back( var );
+			var->setModified( false );
+		}
+	}
+	for ( Variable* var: mVariables ) {
+		// for each variable
+		if ( var->getDomain().isEmpty() ) return false;
+		if ( var->isAssigned() ) {
+			// if the variable is assigned, eliminate the value from its neighbours
+			ConstraintNetwork::VariableSet neighbours = network.getNeighborsOfVariable( var );
+			// find the the value assigned
+			int val = var->getAssignment();
+			// for each neighbour of this variable
+			for ( Variable* n: neighbours ) {
+				Domain nDomain = n->getDomain();
+				if ( nDomain.contains( val ) ) {
+					if ( n->isAssigned() ) return false;
+					trail->push(n);
+					// remove the value from var's domain
+					n->removeValueFromDomain( val );
+				}
+			}
+			if ( !network.isConsistent() ) return false;
+		}
+	}
+
+
+	// (2) If a constraint has only one possible place for a value
+	// then put the value there
+	ConstraintNetwork::ConstraintSet constraints = network.getConstraints();
+	for ( Constraint constraint: constraints ) {
+		// initialize an array counting # of occurrences for each value
+		vector<int> count;
+		count.resize( sudokuGrid.get_n(), 0 );
+		// for each variable in the constraint, find its domain, increment the
+		// count for each value in the domain by 1
+		Constraint::VariableSet constraintVars = constraint.vars;
+		for ( Variable* var: constraintVars ) {
+			for ( int val: var->getDomain() )
+				count[val-1]++;
+		}
+		// iterate through the count vector: if count = 1, figure out the variable,
+		// trail push and make assignment
+		for ( int i = 0; i < count.size(); i++ ) {
+			if ( count[i] == 1 ) {
+				// make the assignment
+				for ( Variable* var: constraintVars )
+					if ( var->getDomain().contains( i+1 ) ) {
+						// trail push before assignment
+						trail->push( var );
+						var->assignValue( i+1 );
+					}
+			}
+		}
+	}
+	// Check consistency of the network
+	bool isConsistent = network.isConsistent();
+	// vector<string> output;
+	// output.push_back("false: not consistent");
+	// output.push_back("true: consistent");
+	// cout << output[isConsistent] << endl;
+	return isConsistent;
 }
 
 /**
@@ -373,7 +452,7 @@ vector<int> BTSolver::getValuesLCVOrder ( Variable* v )
     //get all the neighbours
 	ConstraintNetwork::VariableSet neighbors = network.getNeighborsOfVariable( v );
 
-	//for each neighbour, count occurence of the values v has, the more counts, the more constrained
+	//for each neighbour, count occurrence of the values v has, the more counts, the more constrained
 	for ( Variable* neigh : neighbors )
 	{
 		Domain::ValueSet neighValues = neigh->getValues();
