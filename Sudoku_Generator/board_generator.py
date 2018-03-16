@@ -1,6 +1,7 @@
 import sys
 import random
 
+
 def isValidValue(row, col, value, p, q, N, board ):
     # check whether current value can be assigned to current variable
     return isValidColValue(col, value, p, q, N, board) and isValidRowValue(row, value, p, q, N, board) and isValidBlock(row, col, value, p, q, N, board)
