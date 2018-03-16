@@ -1,5 +1,6 @@
 #include "SudokuBoard.hpp"
-
+#include <stdio.h>
+#include <stdlib.h>
 using namespace std;
 
 /**
@@ -75,7 +76,7 @@ SudokuBoard::SudokuBoard ( std::string filename )
 		for ( int j = 0; j < N; ++j )
 		{
 			file >> x;
-			row.push_back( odometerToInt( x ) );
+			row.push_back( atoi(x.c_str()) );
 		}
 
 		board.push_back( row );

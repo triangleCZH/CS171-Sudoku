@@ -1,5 +1,8 @@
 #include"BTSolver.hpp"
 #include <climits>
+#include <string>
+#include <stdio.h>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -139,50 +142,55 @@ bool BTSolver::norvigCheck ( void )
 				Domain nDomain = n->getDomain();
 				if ( nDomain.contains( val ) ) {
 					if ( n->isAssigned() ) return false;
+					// else if ( n->size() == 2 )
 					trail->push(n);
 					// remove the value from var's domain
 					n->removeValueFromDomain( val );
 				}
 			}
-			if ( !network.isConsistent() ) return false;
+//			if ( !network.isConsistent() ) return false;
 		}
 	}
 
 
 	// (2) If a constraint has only one possible place for a value
 	// then put the value there
+
 	ConstraintNetwork::ConstraintSet constraints = network.getConstraints();
+	vector< int > count;
+	count.resize( sudokuGrid.get_n(), 0 );
+
 	for ( Constraint constraint: constraints ) {
 		// initialize an array counting # of occurrences for each value
-		vector<int> count;
-		count.resize( sudokuGrid.get_n(), 0 );
 		// for each variable in the constraint, find its domain, increment the
 		// count for each value in the domain by 1
 		Constraint::VariableSet constraintVars = constraint.vars;
 		for ( Variable* var: constraintVars ) {
-			for ( int val: var->getDomain() )
-				count[val-1]++;
+			if ( !var->isAssigned() ) {
+				Domain::ValueSet values = (var->getDomain()).getValues();
+				for ( int i = 0; i < values.size(); i++ ) {
+					int val = values[i];
+					count[ val - 1 ] = count[ val - 1 ] + 1;
+				}
+			}
 		}
 		// iterate through the count vector: if count = 1, figure out the variable,
 		// trail push and make assignment
-		for ( int i = 0; i < count.size(); i++ ) {
+		for ( int i = 0; i < sudokuGrid.get_n(); i++ ) {
 			if ( count[i] == 1 ) {
 				// make the assignment
-				for ( Variable* var: constraintVars )
+				for ( Variable* var: constraintVars ) {
 					if ( var->getDomain().contains( i+1 ) ) {
 						// trail push before assignment
 						trail->push( var );
 						var->assignValue( i+1 );
 					}
+				}
 			}
 		}
 	}
 	// Check consistency of the network
 	bool isConsistent = network.isConsistent();
-	// vector<string> output;
-	// output.push_back("false: not consistent");
-	// output.push_back("true: consistent");
-	// cout << output[isConsistent] << endl;
 	return isConsistent;
 }
 
